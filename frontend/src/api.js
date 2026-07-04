@@ -41,6 +41,16 @@ export const api = {
     }
   },
 
+  async getOrders(token) {
+    try {
+      return await request('/orders', {
+        headers: authHeaders(token),
+      })
+    } catch {
+      return []
+    }
+  },
+
   async placeOrder(order, token) {
     try {
       return await request('/orders', {

@@ -3,12 +3,11 @@ const express = require('express')
 const jwt = require('jsonwebtoken')
 const ConnDb = require('./src/Config/DbConfig')
 const User = require('./src/Models/User')
+const Order = require('./src/Models/Order')
 
 const app = express()
 const PORT = process.env.PORT || 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'mern_exam_secret'
-
-const orders = []
 
 const productNames = [
   ['Wireless Headphone', 'Electronics', 2500, 4.5],
@@ -30,7 +29,7 @@ app.use((req, res, next) => {
 })
 
 function createToken(user) {
-  return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1d' })
+  return jwt.sign({ _id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1d' })
 }
 
 function verifyToken(req, res, next) {
@@ -106,27 +105,29 @@ app.get('/api/products', verifyToken, async (req, res) => {
   res.json(products)
 })
 
-app.post('/api/orders', verifyToken, (req, res) => {
+app.post('/api/orders', verifyToken, async (req, res) => {
   const { customer, items, total } = req.body
 
   if (!customer || !items || items.length === 0) {
     return res.status(400).json({ message: 'Order data is missing' })
   }
 
-  const order = {
-    id: Date.now(),
+  const order = await Order.create({
+    user: req.user._id,
     customer,
-    customerName: customer.name,
     items,
     total,
     status: 'Placed',
-  }
+  })
 
-  orders.unshift(order)
   res.json(order)
 })
 
-app.get('/api/orders', verifyToken, (req, res) => {
+app.get('/api/orders', verifyToken, async (req, res) => {
+  const orders = await Order.find({ user: req.user._id })
+    .sort({ createdAt: -1 })
+    .populate('user', 'name email')
+
   res.json(orders)
 })
 

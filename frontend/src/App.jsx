@@ -12,6 +12,7 @@ import ProductDetails from './pages/ProductDetails'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
+import Profile from './pages/Profile'
 
 function App() {
   const [route, setCurrentRoute] = useState(location.hash.replace('#', '') || 'login')
@@ -19,7 +20,7 @@ function App() {
   const [token, setToken] = useState(() => readLocal('token', null))
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState(() => readLocal('cart', []))
-  const [orders, setOrders] = useState(() => readLocal('orders', []))
+  const [orders, setOrders] = useState([])
 
   const cartTotal = useMemo(() => getCartTotal(cart), [cart])
   const isLoggedIn = Boolean(user && token)
@@ -35,11 +36,10 @@ function App() {
   }, [cart])
 
   useEffect(() => {
-    writeLocal('orders', orders)
-  }, [orders])
+    if (!token) return
 
-  useEffect(() => {
-    if (token) api.getProducts(token).then(setProducts)
+    api.getProducts(token).then(setProducts)
+    api.getOrders(token).then(setOrders)
   }, [token])
 
   function saveLogin(loginData) {
@@ -47,15 +47,18 @@ function App() {
     writeLocal('token', loginData.token)
     setUser(loginData.user)
     setToken(loginData.token)
+    setOrders([])
     setRoute('dashboard')
   }
 
   function logout() {
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    localStorage.removeItem('cart')
     setUser(null)
     setToken(null)
     setProducts([])
+    setCart([])
     setRoute('login')
   }
 
@@ -77,13 +80,9 @@ function App() {
 
   async function placeOrder(customer) {
     const savedOrder = await api.placeOrder({ customer, items: cart, total: cartTotal.finalTotal }, token)
-    const order = savedOrder || {
-      id: Date.now(),
-      customerName: customer.name,
-      total: cartTotal.finalTotal,
-      status: 'Placed',
+    if (savedOrder) {
+      setOrders((current) => [savedOrder, ...current])
     }
-    setOrders([order, ...orders])
     setCart([])
     setRoute('orders')
   }
@@ -100,6 +99,7 @@ function App() {
         {route === 'cart' && <Cart cart={cart} total={cartTotal} updateQuantity={updateQuantity} removeFromCart={removeFromCart} />}
         {route === 'checkout' && <Checkout cart={cart} total={cartTotal} placeOrder={placeOrder} />}
         {route === 'orders' && <Orders orders={orders} />}
+        {route === 'profile' && <Profile user={user} />}
       </Layout>
     </ProtectedRoute>
   )

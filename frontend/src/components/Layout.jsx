@@ -1,6 +1,6 @@
 import { setRoute } from '../utils'
 
-const menu = ['dashboard', 'products', 'cart', 'orders']
+const menu = ['dashboard', 'products', 'cart', 'orders', 'profile']
 
 function Layout({ route, user, logout, children }) {
   return (
@@ -21,6 +21,7 @@ function Layout({ route, user, logout, children }) {
 
       <main className="content">
         <header className="topbar">
+          <input placeholder="Search products, orders..." />
           <div>
             <strong>{user?.name || 'Student'}</strong>
             <span> Dashboard</span>
